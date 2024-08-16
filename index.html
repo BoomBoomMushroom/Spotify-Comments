@@ -1,0 +1,27 @@
+<head>
+    <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+    <h1>Spotify Comments</h1>
+
+    <script>
+        const CLIENT_ID = "5ee3aedb09a3447da667c5e06c276fb8"
+        let scopes = 'user-read-private user-read-email'
+
+        function uuidv4() {
+            return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
+                (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
+            );
+        }
+
+        function authenticate(){
+            let state = uuidv4()
+            let CALLBACK_URL = window.location.href
+            let queryString = "response_type=code&client_id="+CLIENT_ID+"&scope="+scopes+"&redirect_uri="+CALLBACK_URL+"&state="+state
+            let redirectURL = "https://accounts.spotify.com/authorize?"+queryString
+            console.log(redirectURL)
+            //window.location = redirectURL
+        }
+    </script>
+</body>
