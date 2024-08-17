@@ -75,6 +75,31 @@ input:focus{
 }
 
 
+.commentMeta{
+    display: flex;
+    align-items: center;
+    /* font-size: medium; */
+}
+
+.commentMeta .pfpImage{
+    margin-right: 10px;
+}
+
+.commentMeta span{
+    margin-right: 10px;
+    margin-top: -2vmax;
+}
+
+.postedDate{
+    color: #aaa;
+}
+
+.commentData{
+    line-height: 0;
+    margin-left: 60px;
+}
+
+
 .music-bar {
     display: flex;
     align-items: center;

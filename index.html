@@ -30,7 +30,18 @@
             <input type="text" id="commentInput" placeholder="Add a comment...">
             <button onclick="" class="button-3">Comment</button>
         </div>
+        <br>
         <div id="comments">
+            <!-- Example comment structure -->
+            <div class="comment" id="COMMENT_UUID">
+                <div class="commentMeta">
+                    <img src="https://dummyimage.com/300x300" class="pfpImage">
+                    <span class="commentUsername">USERNAME</span>
+                    <span class="postedDate">A FEW SECONDS AGO</span>
+                </div>
+                <span class="commentData">COMMENT DATA</span>
+            </div>
+            <!-- end of comment structure -->
 
         </div>
     </div>
@@ -83,6 +94,7 @@
 
         function addComment(data){
             // will work on later
+            
         }
 
         function loadComments(data){
@@ -95,13 +107,16 @@
             "UUID": "UUID_DEMO",
             "user": {
                 "username": "John Doe",
+                "profileURL": "https://spotify.com",
                 "pfpURL": "https://i.scdn.co/image/ab6775700000ee85f4b8be4cfa24c9e067201f72"
             },
             "commentMeta": {
                 "message": "Hello world!",
                 "likes": 0,
                 "dislikes": 0,
-                "replyingTo": null
+                "replyingTo": null,
+                "isEdited": false,
+                "postTime": 0, // in seconds since epoch
             }
         }])
     </script>
