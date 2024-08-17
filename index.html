@@ -24,8 +24,15 @@
     </div>
 
     <div id="commentSection">
-        <h1>Comments</h1>
-        <img src="https://dummyimage.com/300x300" id="myProfilePicture">
+        <h1 id="commentSectionHeader">0 Comments</h1>
+        <div id="writeMyComment">
+            <img src="https://dummyimage.com/300x300" class="pfpImage" id="myProfilePicture">
+            <input type="text" id="commentInput" placeholder="Add a comment...">
+            <button onclick="" class="button-3">Comment</button>
+        </div>
+        <div id="comments">
+
+        </div>
     </div>
 
     <!--  Setup global functions like cookies and sleep  -->
@@ -62,6 +69,41 @@
             }
             return "";
         }
+    </script>
+
+    <!-- Page Comment Updating -->
+    <script>
+        let myPfpElement = document.getElementById("myProfilePicture")
+        let myCommentInputElement = document.getElementById("commentInput")
+        let commentsDivElement = document.getElementById("comments")
+
+        function setMyPfp(pfpSrc){
+            myPfpElement.src = pfpSrc
+        }
+
+        function addComment(data){
+            // will work on later
+        }
+
+        function loadComments(data){
+            for(let i=0; i<data.length; i++){
+                addComment(data[i])
+            }
+        }
+
+        loadComments([{
+            "UUID": "UUID_DEMO",
+            "user": {
+                "username": "John Doe",
+                "pfpURL": "https://i.scdn.co/image/ab6775700000ee85f4b8be4cfa24c9e067201f72"
+            },
+            "commentMeta": {
+                "message": "Hello world!",
+                "likes": 0,
+                "dislikes": 0,
+                "replyingTo": null
+            }
+        }])
     </script>
 
     <!--  .  -->
@@ -133,6 +175,27 @@
             return JSON.stringify(json)
         }
 
+        async function refreshAccessToken(){
+            let tokens = JSON.parse(getCookie(spotifyAuthCookieName))
+            let refreshToken = tokens["refresh_token"]
+            if(refreshToken == null){
+                // Reset and ask for new auth
+                setCookie(spotifyAccessCookieName, "")
+                setCookie(spotifyAuthCookieName, "")
+                return ""
+            }
+
+            let BACKEND_API_URL = "https://6ad817e4-d3b4-4e56-bdd1-88dc8590dddb-00-2wvpjzyuxvr1k.picard.replit.dev"
+            // let callback = window.location.origin + "/callback.html"
+
+            let urlParams = "?grant_type=refresh_token&client_id=" + CLIENT_ID + "&refresh_token=" + refreshToken
+            let response = await fetch(BACKEND_API_URL + "/refresh_token" + urlParams)
+            let json = await response.json()
+
+            console.log(json)
+            return json
+        }
+
         async function getDevices(){
             let tokens = JSON.parse(getCookie(spotifyAuthCookieName))
 
@@ -189,6 +252,10 @@
             return json
         }
 
+        // my user data
+        let myUserData = null
+
+        // song elements
         let songElement = document.getElementById("song")
         songElement.classList.add("hidden")
 
@@ -206,12 +273,56 @@
             artistElement.innerText = "By Example Artist"
         }
 
-        setInterval(async ()=>{
+        let updateSongInterval = setInterval(async ()=>{
+            try{
+                let tokens = JSON.parse(getCookie(spotifyAuthCookieName))
+            }
+            catch(e){
+                // JSON most likely cant be parsed
+                // lets reset our tokens and ask for revalidation
+                setCookie(spotifyAccessCookieName, "")
+                setCookie(spotifyAuthCookieName, "")
+                return
+            }
+
+            if(myUserData == null){
+                myUserData = await getMyUserData()
+                let myPfps = myUserData["images"]
+                for(let i=0; i<myPfps.length; i++){
+                    let pfp = myPfps[i]
+                    if(pfp["height"] != 300){ continue }
+                    
+                    setMyPfp(pfp["url"])
+                    break
+                }
+            }
+
             let playingData = await getCurrentlyPlaying()
             console.log(playingData)
 
+            let err = playingData["error"]
+            if(err != null){
+                switch (err["status"])
+                {
+                    case 401:
+                        // access token expired
+                        let accessToken = await refreshAccessToken()
+                        if(accessToken.length <= 0){
+                            accessToken = ""
+                            // need to ask for new auth
+                            console.log("Refresh failed! Need new Auth")
+                        }
+                        else{
+                            console.log("Access Token Refreshed!")
+                        }
+                        setCookie(spotifyAuthCookieName, accessToken)
+                        break
+                }
+            }
+
             if(playingData["currently_playing_type"] == "ad"){
                 // show playing add banner
+                songElement.classList.add("hidden")
             }
 
             let song = playingData["item"]

@@ -44,6 +44,37 @@ body{
     text-decoration: underline;
 }
 
+.pfpImage{
+    border-radius: 100%;
+    object-fit: cover;
+    width: 55px;
+    height: 55px;
+}
+
+#writeMyComment{
+    display: flex;
+    align-items: center;
+}
+
+#writeMyComment input{
+    width: 90%;
+    background-color: transparent;
+    border: none;
+    border-bottom: 1px solid #ffffff;
+    color: #ffffff;
+    padding: 5px;
+    margin-left: 10px;
+}
+
+input:focus{
+    outline: none;
+}
+
+#writeMyComment button{
+    margin-left: 10px;
+}
+
+
 .music-bar {
     display: flex;
     align-items: center;
