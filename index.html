@@ -34,12 +34,22 @@
         <div id="comments">
             <!-- Example comment structure -->
             <div class="comment" id="COMMENT_UUID">
+                <img src="https://dummyimage.com/300x300" class="pfpImage">
                 <div class="commentMeta">
-                    <img src="https://dummyimage.com/300x300" class="pfpImage">
                     <span class="commentUsername">USERNAME</span>
                     <span class="postedDate">A FEW SECONDS AGO</span>
+                    <br>
+                    <div class="tableSpace"></div>
+                    <span class="commentData">COMMENT DATA</span>
+                    <br>
+                    <button class="reactButton"><img src="assets/thums_up.png" class="reactButton"></button>
+                    <button class="reactButton"><img src="assets/thums_up.png" class="reactButton flipVertical"></button>
+                    <button class="reactButton"><img src="assets/reply.png" class="reactButton"></button>
+                    <br>
+                    <button class="reactButton">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" focusable="false" aria-hidden="true" style="pointer-events: none; display: inherit; width: 100%; height: 100%;"><path d="m18 9.28-6.35 6.35-6.37-6.35.72-.71 5.64 5.65 5.65-5.65z"></path></svg>
+                    </button>
                 </div>
-                <span class="commentData">COMMENT DATA</span>
             </div>
             <!-- end of comment structure -->
 
@@ -93,8 +103,10 @@
         }
 
         function addComment(data){
-            // will work on later
-            
+            let commentBody = document.createElement("div")
+            commentBody.classList.add("comment")
+            commentBody.id = data["UUID"]
+
         }
 
         function loadComments(data){
@@ -337,7 +349,10 @@
 
             if(playingData["currently_playing_type"] == "ad"){
                 // show playing add banner
-                songElement.classList.add("hidden")
+                songElement.classList.remove("hidden")
+                albumCoverElement.src = "https://dummyimage.com/300x300"
+                songNameElement.innerText = "AD"
+                artistElement.innerText = "Provided by Spotify"
             }
 
             let song = playingData["item"]

@@ -1,11 +1,6 @@
-font-face {
-    font-family: 'MyWebFont';
-    src: url('circular-std-2.ttf')  format('truetype'), /* Safari, Android, iOS */
-}
-
 @font-face {
     font-family: 'Circular STD';
-    src: url('circular-std-2.ttf') format('truetype'); /* Chrome 4+, Firefox 3.5, Opera 10+, Safari 3—5 */
+    src: url('assets/circular-std-2.ttf') format('truetype'); /* Chrome 4+, Firefox 3.5, Opera 10+, Safari 3—5 */
 }  
 
 body{
@@ -35,6 +30,7 @@ body{
     margin-left: auto;
 }
 
+/* Song */
 #song img{
     float: left;
     margin-right: 10px;
@@ -44,6 +40,7 @@ body{
     text-decoration: underline;
 }
 
+/* Write Comment */
 .pfpImage{
     border-radius: 100%;
     object-fit: cover;
@@ -75,31 +72,51 @@ input:focus{
 }
 
 
-.commentMeta{
-    display: flex;
-    align-items: center;
-    /* font-size: medium; */
+/* Comments */
+.comment{
+    display: inline-flex;
 }
 
-.commentMeta .pfpImage{
-    margin-right: 10px;
+.commentMeta{
+    display: inline-table;
+    align-items: center;
+    margin-top: 10px;
+    margin-left: 15px;
+}
+
+.tableSpace{
+    height: 3px;
 }
 
 .commentMeta span{
     margin-right: 10px;
-    margin-top: -2vmax;
 }
 
 .postedDate{
     color: #aaa;
 }
 
-.commentData{
-    line-height: 0;
-    margin-left: 60px;
+.reactButton{
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    width: 35px;
+    height: 35px;
+    margin-right: 10px;
 }
 
+.reactButton svg{
+    color: blue;
+}
 
+.flipVertical{
+    -moz-transform: scale(1, -1);
+    -o-transform: scale(1, -1);
+    -webkit-transform: scale(1, -1);
+    transform: scale(1, -1);
+}
+
+/* Music Progress Bar */
 .music-bar {
     display: flex;
     align-items: center;
@@ -132,7 +149,7 @@ input:focus{
 }
 
 
-/* CSS */
+/* Button */
 .button-3 {
   appearance: none;
   background-color: #2ea44f;
