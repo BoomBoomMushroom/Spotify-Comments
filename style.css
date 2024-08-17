@@ -9,12 +9,20 @@ body{
     font-family: "Circular STD";
 }
 
+img{
+    user-select: none;
+}
+
 .hidden{
     display: none;
 }
 
 .noSelect{
     user-select: none;
+}
+
+.clickableMouse:hover{
+    cursor:pointer;
 }
 
 .topBar{
@@ -77,6 +85,16 @@ input:focus{
     display: inline-flex;
 }
 
+.replySection{
+    display: flex;
+    align-items: center;
+    font-family: "Circular STD";
+}
+
+.replyCount{
+    color: #2ea44f;
+}
+
 .commentMeta{
     display: inline-table;
     align-items: center;
@@ -100,13 +118,17 @@ input:focus{
     background-color: transparent;
     border: none;
     padding: 0;
-    width: 35px;
-    height: 35px;
     margin-right: 10px;
 }
 
-.reactButton svg{
-    color: blue;
+.reactButton img{
+    width: 35px;
+    height: 35px;
+}
+
+.reactButton .svg{
+    /* compile filter at: https://codepen.io/sosuke/pen/Pjoqqp */
+    filter: invert(54%) sepia(69%) saturate(449%) hue-rotate(85deg) brightness(85%) contrast(91%);
 }
 
 .flipVertical{
