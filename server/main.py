@@ -1,36 +1,55 @@
-from flask import Flask, redirect
+import flask
 import requests
-import uuid
+import json
+from flask import request
+import os
+import base64
 
-app = Flask(__name__)
+app = flask.Flask(__name__)
 
-URL = "https://api.spotify.com/v1/me/player/currently-playing"
-CLIENT_ID = "5ee3aedb09a3447da667c5e06c276fb8"
-CALLBACK_URL = "http://localhost:8888/callback"
 
-scopes = 'user-read-private user-read-email'
+def responseMake(r):
+    try:
+        json.dumps(r)
+    except:
+        pass
+    resp = flask.Response(json.dumps(r))
+    resp.headers['Access-Control-Allow-Origin'] = "*"
+    return resp
 
-#r = requests.get(URL, headers={"Authorization": ""})
-
-#print(r.text)
 
 @app.route("/")
-def helloWorld():
-    return "Hello world!"
+def home():
+    return responseMake("Backend for Spotify Comments"), 200
 
-@app.route("/auth")
-def userAuth():
-    state = str(uuid.uuid4())
-    
-    queryString = f"response_type=code&client_id={CLIENT_ID}&scope={scopes}&redirect_uri={CALLBACK_URL}&state={state}"
-    redirectURL = f"https://accounts.spotify.com/authorize?{queryString}"
-    a = redirect(redirectURL)
-    print(a)
-    #r = requests.get(redirectURL)
-    
-    #print(redirectURL)
-    #print(r.text)
-    return "stuff"
 
-if __name__ == "__main__":
-    app.run("0.0.0.0", port=8080)
+@app.route("/authorization_code")
+def authorization_code():
+    try:
+        state = str(request.args.get('state'))
+        code = str(request.args.get('code'))
+        redirectURI = str(request.args.get('redirect_uri'))
+        grantType = str(request.args.get('grant_type'))
+    except:
+        flask.abort(400)
+        #return 400
+
+    bothSpotifyStuff = os.environ['SPOTIFY_ID'] + ":" + os.environ[
+        'SPOTIFY_SECRET']
+    b64SpotifyAuth = base64.b64encode(
+        bothSpotifyStuff.encode('utf-8')).decode('utf-8')
+
+    urlParams = f"?grant_type={grantType}&redirect_uri={redirectURI}&code={code}&state={state}"
+    result = requests.post(
+        f"https://accounts.spotify.com/api/token{urlParams}",
+        headers={
+            "content-type": "application/x-www-form-urlencoded",
+            "Authorization": "Basic " + b64SpotifyAuth
+        })
+
+    print(result.status_code)
+    print(result.json())
+    return responseMake(result.json()), 200
+
+
+app.run(host="0.0.0.0", port=7777)

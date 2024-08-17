@@ -2,3 +2,12 @@ body{
     background-color: #111111;
     color: white;
 }
+
+#song img{
+    float: left;
+    margin-right: 10px;
+}
+
+#songTitle{
+    text-decoration: underline;
+}
