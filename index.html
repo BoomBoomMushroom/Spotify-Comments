@@ -3,7 +3,10 @@
 </head>
 
 <body>
-    <h1>Spotify Comments</h1>
+    <div class="topBar">
+        <h1>Spotify Comments</h1>
+        <button onclick="authenticate()" class="button-3">Authorize</button>
+    </div>
 
     <div id="song">
         <img src="https://dummyimage.com/300x300" id="albumCover">
@@ -11,6 +14,18 @@
             <h2 id="songTitle">Example Song</h2>
             <h4 id="songArtist">By Example Artist</h4>
         </div>
+        <div class="music-bar">
+            <div class="time" id="currentTime">2:33</div>
+            <div class="progress-bar">
+                <div class="progress" id="progressPercent"></div>
+            </div>
+            <div class="time" id="totalTime">2:35</div>
+        </div>
+    </div>
+
+    <div id="commentSection">
+        <h1>Comments</h1>
+        <img src="https://dummyimage.com/300x300" id="myProfilePicture">
     </div>
 
     <!--  Setup global functions like cookies and sleep  -->
@@ -23,6 +38,15 @@
             let expires = "expires="+ d.toUTCString();
             document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
         }
+
+        function formatTime(ms){
+            let timeString = new Date(ms).toISOString().slice(14, 19);
+            if(timeString[0] == "0"){
+                timeString = timeString.substring(1);
+            }
+            return timeString
+        }
+
         function getCookie(cname) {
             let name = cname + "=";
             let decodedCookie = decodeURIComponent(document.cookie);
@@ -45,7 +69,7 @@
         const spotifyAuthCookieName = "SpotifyAuthToken"
         const spotifyAccessCookieName = "SpotifyAccessToken"
         const CLIENT_ID = "5ee3aedb09a3447da667c5e06c276fb8"
-        let scopes = 'user-read-private user-read-email user-read-currently-playing'
+        let scopes = 'user-read-private user-read-email user-read-currently-playing user-modify-playback-state user-read-playback-state'
 
         function uuidv4() {
             return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
@@ -109,6 +133,35 @@
             return JSON.stringify(json)
         }
 
+        async function getDevices(){
+            let tokens = JSON.parse(getCookie(spotifyAuthCookieName))
+
+            let apiUrl = "https://api.spotify.com/v1/me/player/devices"
+            let response = await fetch(apiUrl, {
+                method: "GET",
+                headers: {
+                    "Authorization": tokens["token_type"] + " " + tokens["access_token"]
+                }
+            })
+            let json = await response.json()
+            return json
+        }
+
+        async function skipToPosition(position){
+            // position will be in ms
+            let tokens = JSON.parse(getCookie(spotifyAuthCookieName))
+
+            let apiUrl = "https://api.spotify.com/v1/me/player/seek?position_ms=" + position + "&device_id=" + device_id
+            let response = await fetch(apiUrl, {
+                method: "PUT",
+                headers: {
+                    "Authorization": tokens["token_type"] + " " + tokens["access_token"]
+                }
+            })
+            let json = await response.json()
+            return json
+        }
+
         async function getCurrentlyPlaying(){
             let tokens = JSON.parse(getCookie(spotifyAuthCookieName))
 
@@ -122,11 +175,30 @@
             //console.log(json)
             return json
         }
+        
+        async function getMyUserData(){
+            let tokens = JSON.parse(getCookie(spotifyAuthCookieName))
+
+            let apiUrl = "https://api.spotify.com/v1/me"
+            let response = await fetch(apiUrl, {
+                headers: {
+                    "Authorization": tokens["token_type"] + " " + tokens["access_token"]
+                }
+            })
+            let json = await response.json()
+            return json
+        }
+
+        let songElement = document.getElementById("song")
+        songElement.classList.add("hidden")
 
         let albumCoverElement = document.getElementById("albumCover")
         albumCoverElement.width = 150;
         let songNameElement = document.getElementById("songTitle")
         let artistElement = document.getElementById("songArtist")
+        let progressPercentElement = document.getElementById("progressPercent")
+        let currentTimeElement = document.getElementById("currentTime")
+        let totalTimeElement = document.getElementById("totalTime")
 
         function resetAlbum(){
             albumCoverElement.src = "https://dummyimage.com/300x300"
@@ -138,10 +210,15 @@
             let playingData = await getCurrentlyPlaying()
             console.log(playingData)
 
+            if(playingData["currently_playing_type"] == "ad"){
+                // show playing add banner
+            }
+
             let song = playingData["item"]
             if(song == null){
                 return
             }
+            songElement.classList.remove("hidden")
 
             // display artwork
             let albumImages = song["album"]["images"]
@@ -171,6 +248,14 @@
                 }
                 artistElement.innerText += artist
             }
+
+            let currentTime = playingData["progress_ms"]
+            let totalTime = song["duration_ms"]
+            let progress = currentTime / totalTime
+            progressPercentElement.style.width = (progress * 100) + "%"
+
+            currentTimeElement.innerText = formatTime(currentTime)
+            totalTimeElement.innerText = formatTime(totalTime)
         }, 1000)
     </script>
 </body>
