@@ -1,7 +1,5 @@
 <head>
     <link rel="stylesheet" href="./style.css">
-    <script>let exports = {}</script>
-    <script src="https://unpkg.com/javascript-time-ago@2.5.10/index.cjs"></script>
 </head>
 
 <body>
@@ -44,18 +42,17 @@
                     <div class="tableSpace"></div>
                     <span class="commentData">COMMENT DATA</span>
                     <br>
-                    <button class="reactButton clickableMouse"><img src="assets/thums_up.png" class="reactButton"></button>
-                    <button class="reactButton clickableMouse"><img src="assets/thums_up.png" class="reactButton flipVertical"></button>
+                    <button class="reactButton clickableMouse"><img src="assets/thumbs_up.png" class="reactButton"></button>
+                    <button class="reactButton clickableMouse"><img src="assets/thumbs_up.png" class="reactButton flipVertical"></button>
                     <button class="reactButton clickableMouse"><img src="assets/reply.png" class="reactButton"></button>
                     <br>
                     <button class="replySection reactButton clickableMouse">
                        <img src="assets/dropdown.svg" class="reactButton svg">
-                        <span class="replyCount">0 Replies</span>
+                       <span class="replyCount">0 Replies</span>
                     </button>
                 </div>
             </div>
             <!-- end of comment structure -->
-
         </div>
     </div>
 
@@ -95,6 +92,14 @@
         }
     </script>
 
+    <!--  Setup dayjs  -->
+    <script src="./dayjs.min.js"></script>
+    <script src="./relativeTime.js"></script>
+    <script>
+        dayjs.extend(window.dayjs_plugin_relativeTime)
+        // dayjs().to(0) // "55 years ago" (as of 8/18/2024)
+    </script>
+
     <!-- Page Comment Updating -->
     <script>
         let myPfpElement = document.getElementById("myProfilePicture")
@@ -106,10 +111,109 @@
         }
 
         function addComment(data){
+            let commentUser = data["user"]
+            let commentMeta = data["commentMeta"]
+
             let commentBody = document.createElement("div")
             commentBody.classList.add("comment")
             commentBody.id = data["UUID"]
+            commentsDivElement.appendChild(commentBody)
 
+            let openProfileClick = ()=>{window.open(commentUser["profileURL"])}
+
+            let pfp = document.createElement("img")
+            pfp.classList.add("pfpImage")
+            pfp.src = commentUser["pfpURL"]
+            pfp.addEventListener("click", openProfileClick)
+            commentBody.appendChild(pfp)
+
+            let commentMetaDiv = document.createElement("div")
+            commentMetaDiv.classList.add("commentMeta")
+            commentsDivElement.appendChild(commentMetaDiv)
+
+            let commentUsername = document.createElement("span")
+            commentUsername.classList.add("commentUsername")
+            commentUsername.innerText = commentUser["username"]
+            commentUsername.addEventListener("click", openProfileClick)
+            commentMetaDiv.appendChild(commentUsername)
+
+            let timeAgo = dayjs().to(commentMeta["postTime"])
+
+            let postedDate = document.createElement("span")
+            postedDate.classList.add("postedDate")
+            postedDate.innerText = timeAgo
+            commentMetaDiv.appendChild(postedDate)
+
+            let br1 = document.createElement("br")
+            commentMetaDiv.appendChild(br1)
+
+            let tableSpace = document.createElement("div")
+            tableSpace.classList.add("tablespace")
+            commentMetaDiv.appendChild(tableSpace)
+
+            let commentDataElement = document.createElement("span")
+            commentDataElement.classList.add("commentData")
+            commentDataElement.innerText = commentMeta["message"]
+            commentMetaDiv.appendChild(commentDataElement)
+
+            let br2 = document.createElement("br")
+            commentMetaDiv.appendChild(br2)
+
+            // thumbs up
+            let thumbsUp = document.createElement("button")
+            thumbsUp.classList.add("reactButton")
+            thumbsUp.classList.add("clickableMouse")
+            commentMetaDiv.appendChild(thumbsUp)
+
+            let thumbsUpImage = document.createElement("img")
+            thumbsUpImage.src = "assets/thumbs_up.png"
+            thumbsUpImage.classList.add("reactButton")
+            thumbsUp.appendChild(thumbsUpImage)
+
+            // thumbs down
+            let thumbsDown = document.createElement("button")
+            thumbsDown.classList.add("reactButton")
+            thumbsDown.classList.add("clickableMouse")
+            commentMetaDiv.appendChild(thumbsDown)
+
+            let thumbsDownImage = document.createElement("img")
+            thumbsDownImage.src = "assets/thumbs_up.png"
+            thumbsDownImage.classList.add("reactButton")
+            thumbsDownImage.classList.add("flipVertical")
+            thumbsDown.appendChild(thumbsDownImage)
+
+            // reply down
+            let replyElement = document.createElement("button")
+            replyElement.classList.add("reactButton")
+            replyElement.classList.add("clickableMouse")
+            commentMetaDiv.appendChild(replyElement)
+
+            let replyImage = document.createElement("img")
+            replyImage.src = "assets/reply.png"
+            replyImage.classList.add("reactButton")
+            thumbsDown.appendChild(replyImage)
+
+            let br3 = document.createElement("br")
+            commentMetaDiv.appendChild(br3)
+
+            // reply down
+            let dropdownRepliesElement = document.createElement("button")
+            dropdownRepliesElement.classList.add("replySection")
+            dropdownRepliesElement.classList.add("reactButton")
+            dropdownRepliesElement.classList.add("clickableMouse")
+            commentMetaDiv.appendChild(dropdownRepliesElement)
+
+            let dropdownImage = document.createElement("img")
+            dropdownImage.src = "assets/dropdown.svg"
+            dropdownImage.classList.add("reactButton")
+            dropdownImage.classList.add("svg")
+            dropdownRepliesElement.appendChild(dropdownImage)
+
+            let replyCount = document.createElement("span")
+            replyCount.classList.add("replyCount")
+            let replyCountNumber = commentMeta["replyCount"]
+            replyCount.innerText = replyCountNumber + (replyCountNumber == 1 ? " Reply" : " Replies")
+            dropdownRepliesElement.appendChild(replyCount)
         }
 
         function loadComments(data){
@@ -130,6 +234,7 @@
                 "message": "Hello world!",
                 "likes": 0,
                 "dislikes": 0,
+                "replyCount": 0,
                 "replyingTo": null,
                 "isEdited": false,
                 "postTime": 0, // in seconds since epoch
@@ -285,6 +390,7 @@
 
         // my user data
         let myUserData = null
+        let playingData = {}
 
         // song elements
         let songElement = document.getElementById("song")
@@ -328,8 +434,15 @@
                 }
             }
 
-            let playingData = await getCurrentlyPlaying()
-            console.log(playingData)
+            try{
+                playingData = await getCurrentlyPlaying()
+                console.log(playingData)
+            }
+            catch(e){
+                // probably not playing anything
+                songElement.classList.add("hidden")
+                return
+            }
 
             let err = playingData["error"]
             if(err != null){
