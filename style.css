@@ -85,10 +85,19 @@ input:focus{
     display: inline-flex;
 }
 
+.reactCount{
+    display: inline-block;
+    vertical-align: middle;
+    
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+}
+
 .replySection{
     display: flex;
     align-items: center;
-    font-family: "Circular STD";
+    font-family: inherit;
 }
 
 .replyCount{
@@ -118,7 +127,12 @@ input:focus{
     background-color: transparent;
     border: none;
     padding: 0;
-    margin-right: 10px;
+    margin-right: 0px;
+    text-align: center;
+    
+    font-size: inherit;
+    color: inherit;
+    font-family: inherit;
 }
 
 .reactButton img{

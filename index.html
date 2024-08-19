@@ -33,6 +33,7 @@
         <br>
         <div id="comments">
             <!-- Example comment structure -->
+            <!--
             <div class="comment" id="COMMENT_UUID">
                 <img src="https://dummyimage.com/300x300" class="pfpImage">
                 <div class="commentMeta">
@@ -42,9 +43,19 @@
                     <div class="tableSpace"></div>
                     <span class="commentData">COMMENT DATA</span>
                     <br>
-                    <button class="reactButton clickableMouse"><img src="assets/thumbs_up.png" class="reactButton"></button>
-                    <button class="reactButton clickableMouse"><img src="assets/thumbs_up.png" class="reactButton flipVertical"></button>
-                    <button class="reactButton clickableMouse"><img src="assets/reply.png" class="reactButton"></button>
+
+                    <button class="reactButton clickableMouse">
+                        <img src="assets/thumbs_up.png" class="reactCount reactButton">
+                        <span class="reactCount">0</span>
+                    </button>
+                    <button class="reactButton clickableMouse">
+                        <img src="assets/thumbs_up.png" class="reactCount reactButton flipVertical">
+                        <span class="reactCount">0</span>
+                    </button>
+                    <button class="reactButton clickableMouse">
+                        <img src="assets/reply.png" class="reactCount reactButton">
+                    </button>
+
                     <br>
                     <button class="replySection reactButton clickableMouse">
                        <img src="assets/dropdown.svg" class="reactButton svg">
@@ -52,6 +63,9 @@
                     </button>
                 </div>
             </div>
+            <br>
+            <br>
+            -->
             <!-- end of comment structure -->
         </div>
     </div>
@@ -105,118 +119,72 @@
         let myPfpElement = document.getElementById("myProfilePicture")
         let myCommentInputElement = document.getElementById("commentInput")
         let commentsDivElement = document.getElementById("comments")
+        let commentSectionHeaderElement = document.getElementById("commentSectionHeader")
 
         function setMyPfp(pfpSrc){
             myPfpElement.src = pfpSrc
+        }
+        function extractTimestamp(text){
+            let timestampRegex = /\d{2}:\d{2}:\d{2}|\d{1,2}:\d{2}/
+            let match = text.match(timestampRegex)
+            return match || []
+        }
+
+        function splitByString(text, string){
+            let splits = text.split(string)
+            let out = [splits[0], ""]
+            for(let i=1; i<splits.length; i++){
+                out[1] += splits[i]
+            }
+            return out
         }
 
         function addComment(data){
             let commentUser = data["user"]
             let commentMeta = data["commentMeta"]
-
-            let commentBody = document.createElement("div")
-            commentBody.classList.add("comment")
-            commentBody.id = data["UUID"]
-            commentsDivElement.appendChild(commentBody)
-
+            
             let openProfileClick = ()=>{window.open(commentUser["profileURL"])}
 
-            let pfp = document.createElement("img")
-            pfp.classList.add("pfpImage")
-            pfp.src = commentUser["pfpURL"]
-            pfp.addEventListener("click", openProfileClick)
-            commentBody.appendChild(pfp)
+            let replyCount = commentMeta["replyCount"]
 
-            let commentMetaDiv = document.createElement("div")
-            commentMetaDiv.classList.add("commentMeta")
-            commentsDivElement.appendChild(commentMetaDiv)
+            commentsDivElement.innerHTML += `
+            <div class="comment" id="`+ data["UUID"] +`">
+                <img src="`+ commentUser["pfpURL"] +`" class="pfpImage">
+                <div class="commentMeta">
+                    <span class="commentUsername">`+ commentUser["username"] +`</span>
+                    <span class="postedDate">`+ dayjs().to(commentMeta["postTime"]) +`</span>
+                    <br>
+                    <div class="tableSpace"></div>
+                    <span class="commentData">`+ commentMeta["message"] +`</span>
+                    <br>
 
-            let commentUsername = document.createElement("span")
-            commentUsername.classList.add("commentUsername")
-            commentUsername.innerText = commentUser["username"]
-            commentUsername.addEventListener("click", openProfileClick)
-            commentMetaDiv.appendChild(commentUsername)
+                    <button class="reactButton clickableMouse">
+                        <img src="assets/thumbs_up.png" class="reactCount reactButton">
+                        <span class="reactCount">`+ commentMeta["likes"].length +`</span>
+                    </button>
+                    <button class="reactButton clickableMouse">
+                        <img src="assets/thumbs_up.png" class="reactCount reactButton flipVertical">
+                        <span class="reactCount">`+ commentMeta["dislikes"].length +`</span>
+                    </button>
+                    <button class="reactButton clickableMouse">
+                        <img src="assets/reply.png" class="reactCount reactButton">
+                    </button>
 
-            let timeAgo = dayjs().to(commentMeta["postTime"])
-
-            let postedDate = document.createElement("span")
-            postedDate.classList.add("postedDate")
-            postedDate.innerText = timeAgo
-            commentMetaDiv.appendChild(postedDate)
-
-            let br1 = document.createElement("br")
-            commentMetaDiv.appendChild(br1)
-
-            let tableSpace = document.createElement("div")
-            tableSpace.classList.add("tablespace")
-            commentMetaDiv.appendChild(tableSpace)
-
-            let commentDataElement = document.createElement("span")
-            commentDataElement.classList.add("commentData")
-            commentDataElement.innerText = commentMeta["message"]
-            commentMetaDiv.appendChild(commentDataElement)
-
-            let br2 = document.createElement("br")
-            commentMetaDiv.appendChild(br2)
-
-            // thumbs up
-            let thumbsUp = document.createElement("button")
-            thumbsUp.classList.add("reactButton")
-            thumbsUp.classList.add("clickableMouse")
-            commentMetaDiv.appendChild(thumbsUp)
-
-            let thumbsUpImage = document.createElement("img")
-            thumbsUpImage.src = "assets/thumbs_up.png"
-            thumbsUpImage.classList.add("reactButton")
-            thumbsUp.appendChild(thumbsUpImage)
-
-            // thumbs down
-            let thumbsDown = document.createElement("button")
-            thumbsDown.classList.add("reactButton")
-            thumbsDown.classList.add("clickableMouse")
-            commentMetaDiv.appendChild(thumbsDown)
-
-            let thumbsDownImage = document.createElement("img")
-            thumbsDownImage.src = "assets/thumbs_up.png"
-            thumbsDownImage.classList.add("reactButton")
-            thumbsDownImage.classList.add("flipVertical")
-            thumbsDown.appendChild(thumbsDownImage)
-
-            // reply down
-            let replyElement = document.createElement("button")
-            replyElement.classList.add("reactButton")
-            replyElement.classList.add("clickableMouse")
-            commentMetaDiv.appendChild(replyElement)
-
-            let replyImage = document.createElement("img")
-            replyImage.src = "assets/reply.png"
-            replyImage.classList.add("reactButton")
-            thumbsDown.appendChild(replyImage)
-
-            let br3 = document.createElement("br")
-            commentMetaDiv.appendChild(br3)
-
-            // reply down
-            let dropdownRepliesElement = document.createElement("button")
-            dropdownRepliesElement.classList.add("replySection")
-            dropdownRepliesElement.classList.add("reactButton")
-            dropdownRepliesElement.classList.add("clickableMouse")
-            commentMetaDiv.appendChild(dropdownRepliesElement)
-
-            let dropdownImage = document.createElement("img")
-            dropdownImage.src = "assets/dropdown.svg"
-            dropdownImage.classList.add("reactButton")
-            dropdownImage.classList.add("svg")
-            dropdownRepliesElement.appendChild(dropdownImage)
-
-            let replyCount = document.createElement("span")
-            replyCount.classList.add("replyCount")
-            let replyCountNumber = commentMeta["replyCount"]
-            replyCount.innerText = replyCountNumber + (replyCountNumber == 1 ? " Reply" : " Replies")
-            dropdownRepliesElement.appendChild(replyCount)
+                    <br>
+                    <button class="replySection reactButton clickableMouse">
+                       <img src="assets/dropdown.svg" class="reactButton svg">
+                       <span class="replyCount">`+ replyCount + (replyCount == 1 ? " Reply" : " Replies") +`</span>
+                    </button>
+                </div>
+            </div>
+            <br>
+            <br>`
         }
 
         function loadComments(data){
+            let commentCount = data.length
+            commentSectionHeaderElement.innerText = commentCount + " Comment" + (commentCount == 1 ? "" : "s")
+
             for(let i=0; i<data.length; i++){
                 addComment(data[i])
             }
@@ -231,9 +199,9 @@
                 "pfpURL": "https://i.scdn.co/image/ab6775700000ee85f4b8be4cfa24c9e067201f72"
             },
             "commentMeta": {
-                "message": "Hello world!",
-                "likes": 0,
-                "dislikes": 0,
+                "message": "Hello world! 2:50",
+                "likes": [],
+                "dislikes": [],
                 "replyCount": 0,
                 "replyingTo": null,
                 "isEdited": false,
