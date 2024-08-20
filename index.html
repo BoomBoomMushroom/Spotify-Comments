@@ -28,7 +28,7 @@
         <div id="writeMyComment">
             <img src="https://dummyimage.com/300x300" class="pfpImage" id="myProfilePicture">
             <input type="text" id="commentInput" placeholder="Add a comment...">
-            <button onclick="" class="button-3">Comment</button>
+            <button onclick="postComment()" class="button-3">Comment</button>
         </div>
         <br>
         <div id="comments">
@@ -316,6 +316,7 @@
             let apiUrl = backendApiUrl + "/comments" + queryString
             let response = await fetch(apiUrl)
             let json = await response.json()
+            loadComments(json)
             return json
         }
 

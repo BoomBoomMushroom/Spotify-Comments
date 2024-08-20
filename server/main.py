@@ -107,12 +107,14 @@ def getComments():
         #return 400
 
     result = []
+    if songId in comments:
+        result = comments[songId]
 
     return responseMake(result), 200
 
 
 @app.route("/postcomment")
-def getComments():
+def postComment():
     try:
         songId = str(request.args.get('song_id'))
         message = str(request.args.get('message'))
@@ -147,6 +149,8 @@ def getComments():
         comments[songId] = []
 
     comments[songId].append(newComment)
+    # do this rn so I can get it to persist
+    syncDatabaseToGithub()
 
     return responseMake(""), 200
 
