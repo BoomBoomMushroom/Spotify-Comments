@@ -13,8 +13,9 @@ img{
     user-select: none;
 }
 
+
 .hidden{
-    display: none;
+    display: none !important;
 }
 
 .noSelect{
@@ -121,12 +122,6 @@ input:focus{
 
 .postedDate{
     color: #aaa;
-}
-
-.notAButton{
-    border: none;
-    background-color: transparent;
-    color: inherit;
 }
 
 .whiteImage{

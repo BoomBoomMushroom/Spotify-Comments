@@ -38,9 +38,8 @@
                 <div class="commentMeta">
                     <span class="commentUsername">USERNAME</span>
                     <span class="postedDate">A FEW SECONDS AGO</span>
-                    <button class="notAButton clickableMouse">
-                        <img src="./assets/options.svg" class="whiteImage">
-                    </button>
+                    <button class="button-3 clickableMouse hidden"><img alt="Delete Comment" src="assets/delete.svg" class="whiteImage"></button>
+                    <button class="button-3 clickableMouse hidden"><img alt="Report Comment" src="assets/report.svg" class="whiteImage"></button>
                     <br>
                     <div class="tableSpace"></div>
                     <span class="commentData">COMMENT DATA</span>
@@ -117,6 +116,8 @@
 
     <!-- Page Comment Updating -->
     <script>
+        myUserData = null
+        
         let myPfpElement = document.getElementById("myProfilePicture")
         let myCommentInputElement = document.getElementById("commentInput")
         let commentsDivElement = document.getElementById("comments")
@@ -141,8 +142,6 @@
         }
 
         function addComment(data){
-            return
-
             let commentUser = data["user"]
             let commentMeta = data["commentMeta"]
             
@@ -151,12 +150,21 @@
             let replyCount = commentMeta["replyCount"]
             let editedAppendum = commentMeta["isEdited"] ? " (edited)" : ""
 
+            let deleteShow = "hidden"
+            let reportShow = "hidden"
+            if(myUserData != null){
+                deleteShow = myUserData["id"] == commentUser["id"] ? "hidden" : ""
+                reportShow = deleteShow=="" ? "hidden" : ""
+            }
+
             commentsDivElement.innerHTML += `
             <div class="comment" id="`+ data["UUID"] +`">
                 <img src="`+ commentUser["pfpURL"] +`" class="pfpImage">
                 <div class="commentMeta">
                     <span class="commentUsername">`+ commentUser["username"] +`</span>
                     <span class="postedDate">`+ dayjs().to(commentMeta["postTime"]) + editedAppendum +`</span>
+                    <button class="button-3 clickableMouse `+deleteShow+`"><img alt="Delete Comment" src="assets/delete.svg" class="whiteImage"></button>
+                    <button class="button-3 clickableMouse `+reportShow+`"><img alt="Report Comment" src="assets/report.svg" class="whiteImage"></button>
                     <br>
                     <div class="tableSpace"></div>
                     <span class="commentData">`+ commentMeta["message"] +`</span>
@@ -186,6 +194,8 @@
         }
 
         function loadComments(data){
+            commentsDivElement.innerHTML = ""
+
             let commentCount = data.length
             commentSectionHeaderElement.innerText = commentCount + " Comment" + (commentCount == 1 ? "" : "s")
 
@@ -194,11 +204,13 @@
             }
         }
 
+        /*
         loadComments([{
             "UUID": "UUID_DEMO",
             "SongTrackId": "SongTrackId",
             "user": {
                 "username": "John Doe",
+                "id": "USER_ID_DEMO",
                 "profileURL": "https://spotify.com",
                 "pfpURL": "https://i.scdn.co/image/ab6775700000ee85f4b8be4cfa24c9e067201f72"
             },
@@ -212,6 +224,7 @@
                 "postTime": 0, // in seconds since epoch
             }
         }])
+        */
     </script>
 
     <!--  .  -->
@@ -283,7 +296,10 @@
             return json
         }
         async function refreshAccessTokenPKE(){
-            let queryString = "?grant_type=refresh_token&code="+code+"&client_id="+CLIENT_ID+"&refresh_token="+refreshToken
+            let tokens = JSON.parse(getCookie(spotifyAuthCookieName))
+            let refreshToken = tokens["refresh_token"]
+
+            let queryString = "?grant_type=refresh_token&client_id="+CLIENT_ID+"&refresh_token="+refreshToken
             let apiUrl = "https://accounts.spotify.com/api/token" + queryString
             let response = await fetch(apiUrl, {
                 method: "POST",
@@ -291,6 +307,14 @@
                     "Content-Type": "application/x-www-form-urlencoded"
                 }
             })
+            let json = await response.json()
+            return json
+        }
+
+        async function getAndLoadComments(songId){
+            let queryString = "?song_id=" + songId
+            let apiUrl = backendApiUrl + "/comments" + queryString
+            let response = await fetch(apiUrl)
             let json = await response.json()
             return json
         }
@@ -338,9 +362,28 @@
             return json
         }
 
+
+        async function postComment(){
+            let queryString = "?song_id="+ playingData["item"]["id"] +"&message="+myCommentInputElement.value+"&user_id="+ myUserData["id"] +"&username="+ myUserData["display_name"] +"&pfp_url="+ myPfpElement.src
+            let apiUrl = backendApiUrl + "/postcomment" + queryString
+            let response = await fetch(apiUrl, {
+                headers: {
+                }
+            })
+            console.log(response)
+            console.log(response.status)
+            let json = await response.json()
+
+            myCommentInputElement.value = ""
+            return json
+        }
+
+
         // my user data
         let myUserData = null
         let playingData = {}
+        let inSong = false
+        let previousPlayingID = null
 
         // song elements
         let songElement = document.getElementById("song")
@@ -371,7 +414,10 @@
                 return
             }
 
-            if(myUserData == null){
+            let updateUser = myUserData == null
+            if(updateUser == false){ updateUser = "error" in myUserData }
+
+            if(updateUser){
                 myUserData = await getMyUserData()
                 let myPfps = myUserData["images"]
                 for(let i=0; i<myPfps.length; i++){
@@ -399,7 +445,7 @@
                 {
                     case 401:
                         // access token expired
-                        let accessToken = await refreshAccessToken()
+                        let accessToken = await refreshAccessTokenPKE()
                         if(accessToken.length <= 0){
                             accessToken = ""
                             // need to ask for new auth
@@ -414,7 +460,10 @@
             }
 
             if(playingData["currently_playing_type"] == "ad"){
-                // show playing add banner
+                previousPlayingID = null
+                inSong = false
+
+                // show playing ad banner
                 songElement.classList.remove("hidden")
                 albumCoverElement.src = "https://dummyimage.com/300x300"
                 songNameElement.innerText = "AD"
@@ -426,6 +475,13 @@
                 return
             }
             songElement.classList.remove("hidden")
+
+            let songId = song["id"]
+            if(previousPlayingID != songId){
+                getAndLoadComments(songId)
+            }
+            previousPlayingID = songId
+            inSong = true
 
             // display artwork
             let albumImages = song["album"]["images"]
