@@ -123,6 +123,17 @@ input:focus{
     color: #aaa;
 }
 
+.notAButton{
+    border: none;
+    background-color: transparent;
+    color: inherit;
+}
+
+.whiteImage{
+    /* compile filter at: https://codepen.io/sosuke/pen/Pjoqqp */
+    filter: invert(100%) sepia(0%) saturate(2%) hue-rotate(139deg) brightness(112%) contrast(101%);
+}
+
 .reactButton{
     background-color: transparent;
     border: none;

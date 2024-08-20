@@ -8,7 +8,9 @@ import base64
 app = flask.Flask(__name__)
 
 bothSpotifyStuff = os.environ['SPOTIFY_ID'] + ":" + os.environ['SPOTIFY_SECRET']
-b64SpotifyAuth = base64.b64encode(bothSpotifyStuff.encode('utf-8')).decode('utf-8')
+b64SpotifyAuth = base64.b64encode(
+    bothSpotifyStuff.encode('utf-8')).decode('utf-8')
+
 
 def responseMake(r):
     try:
@@ -22,53 +24,7 @@ def responseMake(r):
 
 @app.route("/")
 def home():
-    return responseMake("Backend for Spotify Comments"), 200
-
-
-@app.route("/authorization_code")
-def authorization_code():
-    try:
-        state = str(request.args.get('state'))
-        code = str(request.args.get('code'))
-        redirectURI = str(request.args.get('redirect_uri'))
-        grantType = str(request.args.get('grant_type'))
-    except:
-        flask.abort(400)
-        #return 400
-
-    
-
-    urlParams = f"?grant_type={grantType}&redirect_uri={redirectURI}&code={code}&state={state}"
-    result = requests.post(
-        f"https://accounts.spotify.com/api/token{urlParams}",
-        headers={
-            "content-type": "application/x-www-form-urlencoded",
-            "Authorization": "Basic " + b64SpotifyAuth
-        })
-    
-    return responseMake(result.json()), 200
-
-@app.route("/refresh_token")
-def refresh_token():
-    try:
-        clientID = str(request.args.get('client_id'))
-        grantType = str(request.args.get('grant_type'))
-        refreshToken = str(request.args.get('refresh_token'))
-    except:
-        flask.abort(400)
-        #return 400
-
-    urlParams = f"?grant_type={grantType}&client_id={clientID}&refresh_token={refreshToken}"
-    result = requests.post(
-        f"https://accounts.spotify.com/api/token{urlParams}",
-        headers={
-            "content-type": "application/x-www-form-urlencoded",
-            "Authorization": "Basic " + b64SpotifyAuth
-        })
-
-    print(result.status_code)
-    print(result.json())
-    return responseMake(result.json()), 200
+    return responseMake("Backend for Spotify Comments"), 20
 
 
 app.run(host="0.0.0.0", port=7777)

@@ -5,7 +5,7 @@
 <body>
     <div class="topBar">
         <h1>Spotify Comments</h1>
-        <button onclick="authenticate()" class="button-3">Authorize</button>
+        <button onclick="authenticatePKCE()" class="button-3">Authorize</button>
     </div>
 
     <div id="song">
@@ -33,12 +33,14 @@
         <br>
         <div id="comments">
             <!-- Example comment structure -->
-            <!--
             <div class="comment" id="COMMENT_UUID">
                 <img src="https://dummyimage.com/300x300" class="pfpImage">
                 <div class="commentMeta">
                     <span class="commentUsername">USERNAME</span>
                     <span class="postedDate">A FEW SECONDS AGO</span>
+                    <button class="notAButton clickableMouse">
+                        <img src="./assets/options.svg" class="whiteImage">
+                    </button>
                     <br>
                     <div class="tableSpace"></div>
                     <span class="commentData">COMMENT DATA</span>
@@ -65,7 +67,6 @@
             </div>
             <br>
             <br>
-            -->
             <!-- end of comment structure -->
         </div>
     </div>
@@ -140,19 +141,22 @@
         }
 
         function addComment(data){
+            return
+
             let commentUser = data["user"]
             let commentMeta = data["commentMeta"]
             
             let openProfileClick = ()=>{window.open(commentUser["profileURL"])}
 
             let replyCount = commentMeta["replyCount"]
+            let editedAppendum = commentMeta["isEdited"] ? " (edited)" : ""
 
             commentsDivElement.innerHTML += `
             <div class="comment" id="`+ data["UUID"] +`">
                 <img src="`+ commentUser["pfpURL"] +`" class="pfpImage">
                 <div class="commentMeta">
                     <span class="commentUsername">`+ commentUser["username"] +`</span>
-                    <span class="postedDate">`+ dayjs().to(commentMeta["postTime"]) +`</span>
+                    <span class="postedDate">`+ dayjs().to(commentMeta["postTime"]) + editedAppendum +`</span>
                     <br>
                     <div class="tableSpace"></div>
                     <span class="commentData">`+ commentMeta["message"] +`</span>
@@ -199,7 +203,7 @@
                 "pfpURL": "https://i.scdn.co/image/ab6775700000ee85f4b8be4cfa24c9e067201f72"
             },
             "commentMeta": {
-                "message": "Hello world! 2:50",
+                "message": "Hello world!",
                 "likes": [],
                 "dislikes": [],
                 "replyCount": 0,
@@ -211,103 +215,80 @@
     </script>
 
     <!--  .  -->
+    <script src="./consts.js"></script>
     <script>
-        const spotifyAuthCookieName = "SpotifyAuthToken"
-        const spotifyAccessCookieName = "SpotifyAccessToken"
-        const CLIENT_ID = "5ee3aedb09a3447da667c5e06c276fb8"
-        let scopes = 'user-read-private user-read-email user-read-currently-playing user-modify-playback-state user-read-playback-state'
+        const urlParams = new URLSearchParams(window.location.search);
+        let ulrParamsCode = urlParams.get('code');
+        if(ulrParamsCode != null){
+            setTimeout(async ()=>{
+                let result = await getAccessTokenPKE(ulrParamsCode)
+                setCookie(spotifyAuthCookieName, JSON.stringify(result))
+                window.location.search = ""
+            }, 1)
+        }
 
         function uuidv4() {
             return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
                 (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
             );
         }
-        function getParameterByName(name, url = window.location.href) {
-            name = name.replace(/[\[\]]/g, '\\$&');
-            const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
-            const results = regex.exec(url);
-            if (!results) return null;
-            if (!results[2]) return '';
-            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        function generateRandomString(length){
+            const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            const values = crypto.getRandomValues(new Uint8Array(length));
+            return values.reduce((acc, x) => acc + possible[x % possible.length], "");
         }
-        
-        async function authenticate(){
-            setCookie(spotifyAccessCookieName, "")
+        async function sha256(plain){
+            const encoder = new TextEncoder()
+            const data = encoder.encode(plain)
+            return window.crypto.subtle.digest('SHA-256', data)
+        }
+        function base64encode(input){
+            return btoa(String.fromCharCode(...new Uint8Array(input)))
+              .replace(/=/g, '')
+              .replace(/\+/g, '-')
+              .replace(/\//g, '_');
+        }
+
+        async function authenticatePKCE(){
+            let codeVerifier = generateRandomString(64)
+            let hashed = await sha256(codeVerifier)
+            let codeChallenge = base64encode(hashed)
+
             setCookie(spotifyAuthCookieName, "")
+            window.localStorage.setItem(codeChallengeCookieName, codeVerifier);
+            console.log("set challenge", codeChallenge)
 
             let state = uuidv4()
             let CALLBACK_URL = window.location.origin + "/callback.html"
             let queryString = "response_type=code&client_id="+CLIENT_ID+"&scope="+scopes+"&redirect_uri="+CALLBACK_URL+"&state="+state
+            queryString += "&code_challenge_method=S256&code_challenge=" + codeChallenge
             let authURL = "https://accounts.spotify.com/authorize?"+queryString
             console.log(authURL)
-            let authSite = window.open(authURL, "_blank")
+            window.location.href = authURL
+        }
+        async function getAccessTokenPKE(code){
+            let codeVerifier = window.localStorage.getItem(codeChallengeCookieName);
+            console.log(codeVerifier)
             
-            // wait for a successful callback
-            while(true){
-                await sleep(1)
-
-                let constructedURL = authSite.location.origin + authSite.location.pathname
-                if(constructedURL != CALLBACK_URL){continue}
-
-                let code = getParameterByName("code", authSite.location.href)
-                authSite.close()
-                
-                if(code.length <= 0){
-                    code = ""
+            let CALLBACK_URL = window.location.origin + "/callback.html"
+            let queryString = "?grant_type=authorization_code&code="+code+"&client_id="+CLIENT_ID+"&redirect_uri="+CALLBACK_URL+"&code_verifier="+codeVerifier
+            let apiUrl = "https://accounts.spotify.com/api/token" + queryString
+            let response = await fetch(apiUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
                 }
-                setCookie(spotifyAccessCookieName, code)
-                
-                let accessToken = await getAccessToken(state, code)
-                if(accessToken.length <= 0){
-                    accessToken = ""
-                }
-                setCookie(spotifyAuthCookieName, accessToken)
-                console.log("Access Token Complete!")
-
-                break
-            }
-        }
-
-        async function getAccessToken(state, code){
-            let BACKEND_API_URL = "https://6ad817e4-d3b4-4e56-bdd1-88dc8590dddb-00-2wvpjzyuxvr1k.picard.replit.dev"
-            let callback = window.location.origin + "/callback.html"
-    
-            let apiUrl = BACKEND_API_URL + "/authorization_code" + "?grant_type=authorization_code&code=" + code + "&redirect_uri=" + callback + "&state=" + state
-            let response = await fetch(apiUrl)
+            })
             let json = await response.json()
-            //console.log(json)
-            return JSON.stringify(json)
-        }
-
-        async function refreshAccessToken(){
-            let tokens = JSON.parse(getCookie(spotifyAuthCookieName))
-            let refreshToken = tokens["refresh_token"]
-            if(refreshToken == null){
-                // Reset and ask for new auth
-                setCookie(spotifyAccessCookieName, "")
-                setCookie(spotifyAuthCookieName, "")
-                return ""
-            }
-
-            let BACKEND_API_URL = "https://6ad817e4-d3b4-4e56-bdd1-88dc8590dddb-00-2wvpjzyuxvr1k.picard.replit.dev"
-            // let callback = window.location.origin + "/callback.html"
-
-            let urlParams = "?grant_type=refresh_token&client_id=" + CLIENT_ID + "&refresh_token=" + refreshToken
-            let response = await fetch(BACKEND_API_URL + "/refresh_token" + urlParams)
-            let json = await response.json()
-
-            console.log(json)
             return json
         }
-
-        async function getDevices(){
-            let tokens = JSON.parse(getCookie(spotifyAuthCookieName))
-
-            let apiUrl = "https://api.spotify.com/v1/me/player/devices"
+        async function refreshAccessTokenPKE(){
+            let queryString = "?grant_type=refresh_token&code="+code+"&client_id="+CLIENT_ID+"&refresh_token="+refreshToken
+            let apiUrl = "https://accounts.spotify.com/api/token" + queryString
             let response = await fetch(apiUrl, {
-                method: "GET",
+                method: "POST",
                 headers: {
-                    "Authorization": tokens["token_type"] + " " + tokens["access_token"]
+                    "Content-Type": "application/x-www-form-urlencoded"
                 }
             })
             let json = await response.json()
@@ -315,10 +296,11 @@
         }
 
         async function skipToPosition(position){
+            // only works with premium ¯\_(ツ)_/¯
             // position will be in ms
             let tokens = JSON.parse(getCookie(spotifyAuthCookieName))
 
-            let apiUrl = "https://api.spotify.com/v1/me/player/seek?position_ms=" + position + "&device_id=" + device_id
+            let apiUrl = "https://api.spotify.com/v1/me/player/seek?position_ms=" + position
             let response = await fetch(apiUrl, {
                 method: "PUT",
                 headers: {
@@ -385,7 +367,6 @@
             catch(e){
                 // JSON most likely cant be parsed
                 // lets reset our tokens and ask for revalidation
-                setCookie(spotifyAccessCookieName, "")
                 setCookie(spotifyAuthCookieName, "")
                 return
             }
