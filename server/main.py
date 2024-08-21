@@ -72,6 +72,14 @@ def home():
     return responseMake("Backend for Spotify Comments"), 200
 
 
+def tokenToUserData(token):
+    apiUrl = "https://api.spotify.com/v1/me"
+    response = requests.get(apiUrl,
+                            headers={"Authorization": "Bearer " + token})
+    json = response.json()
+    return json
+
+
 """
 # Comment Example
 [
@@ -116,14 +124,21 @@ def getComments():
 @app.route("/postcomment")
 def postComment():
     try:
-        songId = str(request.args.get('song_id'))
         message = str(request.args.get('message'))
-        userId = str(request.args.get('user_id'))
-        username = str(request.args.get('username'))
-        pfpUrl = str(request.args.get('pfp_url'))
+        token = str(request.args.get('token'))
+        songId = str(request.args.get('song_id'))
+
+        #userId = str(request.args.get('user_id'))
+        #username = str(request.args.get('username'))
+        #pfpUrl = str(request.args.get('pfp_url'))
     except:
         flask.abort(400)
         #return 400
+
+    userData = tokenToUserData(token)
+    print(userData)
+
+    return responseMake("out"), 200
 
     newComment = {
         "UUID": str(uuid.uuid4()),

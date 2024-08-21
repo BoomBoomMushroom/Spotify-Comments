@@ -365,14 +365,13 @@
 
 
         async function postComment(){
-            let queryString = "?song_id="+ playingData["item"]["id"] +"&message="+myCommentInputElement.value+"&user_id="+ myUserData["id"] +"&username="+ myUserData["display_name"] +"&pfp_url="+ myPfpElement.src
+            let tokens = JSON.parse(getCookie(spotifyAuthCookieName))
+            let token = tokens["access_token"]
+
+            let queryString = "&message="+myCommentInputElement.value+"&token=" + token + "&song_id=" + previousPlayingID
+            
             let apiUrl = backendApiUrl + "/postcomment" + queryString
-            let response = await fetch(apiUrl, {
-                headers: {
-                }
-            })
-            console.log(response)
-            console.log(response.status)
+            let response = await fetch(apiUrl)
             let json = await response.json()
 
             myCommentInputElement.value = ""
