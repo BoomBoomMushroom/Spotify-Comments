@@ -27,7 +27,7 @@
         <h1 id="commentSectionHeader">0 Comments</h1>
         <div id="writeMyComment">
             <img src="https://dummyimage.com/300x300" class="pfpImage" id="myProfilePicture">
-            <input type="text" id="commentInput" placeholder="Add a comment...">
+            <input type="text" id="commentInput" placeholder="Add a comment..." maxlength="1000">
             <button onclick="postComment()" class="button-3">Comment</button>
         </div>
         <br>
@@ -157,12 +157,15 @@
                 reportShow = deleteShow=="" ? "hidden" : ""
             }
 
+            let replySpan = `<span class="replyCount">`+ replyCount + (replyCount == 1 ? " Reply" : " Replies") +`</span>`
+            if(replyCount == 0){ replySpan = "" }
+
             commentsDivElement.innerHTML += `
             <div class="comment" id="`+ data["UUID"] +`">
                 <img src="`+ commentUser["pfpURL"] +`" class="pfpImage">
                 <div class="commentMeta">
                     <span class="commentUsername">`+ commentUser["username"] +`</span>
-                    <span class="postedDate">`+ dayjs().to(commentMeta["postTime"]) + editedAppendum +`</span>
+                    <span class="postedDate">`+ dayjs().to(commentMeta["postTime"] * 1000) + editedAppendum +`</span>
                     <button class="button-3 clickableMouse `+deleteShow+`"><img alt="Delete Comment" src="assets/delete.svg" class="whiteImage"></button>
                     <button class="button-3 clickableMouse `+reportShow+`"><img alt="Report Comment" src="assets/report.svg" class="whiteImage"></button>
                     <br>
@@ -185,7 +188,7 @@
                     <br>
                     <button class="replySection reactButton clickableMouse">
                        <img src="assets/dropdown.svg" class="reactButton svg">
-                       <span class="replyCount">`+ replyCount + (replyCount == 1 ? " Reply" : " Replies") +`</span>
+                       ` + replySpan + `
                     </button>
                 </div>
             </div>
@@ -262,6 +265,17 @@
               .replace(/\//g, '_');
         }
 
+        function getTokens(){
+            let tokens;
+            try{
+                tokens = JSON.parse(getCookie(spotifyAuthCookieName))
+            }
+            catch(e){
+                tokens = {}
+            }
+            return tokens
+        }
+
         async function authenticatePKCE(){
             let codeVerifier = generateRandomString(64)
             let hashed = await sha256(codeVerifier)
@@ -296,7 +310,7 @@
             return json
         }
         async function refreshAccessTokenPKE(){
-            let tokens = JSON.parse(getCookie(spotifyAuthCookieName))
+            let tokens = getTokens()
             let refreshToken = tokens["refresh_token"]
 
             let queryString = "?grant_type=refresh_token&client_id="+CLIENT_ID+"&refresh_token="+refreshToken
@@ -323,7 +337,7 @@
         async function skipToPosition(position){
             // only works with premium ¯\_(ツ)_/¯
             // position will be in ms
-            let tokens = JSON.parse(getCookie(spotifyAuthCookieName))
+            let tokens = getTokens()
 
             let apiUrl = "https://api.spotify.com/v1/me/player/seek?position_ms=" + position
             let response = await fetch(apiUrl, {
@@ -337,7 +351,7 @@
         }
 
         async function getCurrentlyPlaying(){
-            let tokens = JSON.parse(getCookie(spotifyAuthCookieName))
+            let tokens = getTokens()
 
             let apiUrl = "https://api.spotify.com/v1/me/player/currently-playing"
             let response = await fetch(apiUrl, {
@@ -351,7 +365,7 @@
         }
         
         async function getMyUserData(){
-            let tokens = JSON.parse(getCookie(spotifyAuthCookieName))
+            let tokens = getTokens()
 
             let apiUrl = "https://api.spotify.com/v1/me"
             let response = await fetch(apiUrl, {
@@ -363,15 +377,18 @@
             return json
         }
 
-
         async function postComment(){
-            let tokens = JSON.parse(getCookie(spotifyAuthCookieName))
-            let token = tokens["access_token"]
+            let tokens = getTokens()
 
-            let queryString = "&message="+myCommentInputElement.value+"&token=" + token + "&song_id=" + previousPlayingID
+            let queryString = "?message="+myCommentInputElement.value + "&song_id=" + previousPlayingID
             
             let apiUrl = backendApiUrl + "/postcomment" + queryString
-            let response = await fetch(apiUrl)
+            let response = await fetch(apiUrl, {
+                headers: {
+                    "Authorization": tokens["token_type"] + " " + tokens["access_token"],
+                    'Access-Control-Allow-Origin': '*',
+                }
+            })
             let json = await response.json()
 
             myCommentInputElement.value = ""
@@ -405,7 +422,7 @@
 
         let updateSongInterval = setInterval(async ()=>{
             try{
-                let tokens = JSON.parse(getCookie(spotifyAuthCookieName))
+                let tokens = getTokens()
             }
             catch(e){
                 // JSON most likely cant be parsed
@@ -478,6 +495,7 @@
 
             let songId = song["id"]
             if(previousPlayingID != songId){
+                console.log("get & load")
                 getAndLoadComments(songId)
             }
             previousPlayingID = songId

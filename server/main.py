@@ -1,4 +1,5 @@
 import flask
+from flask_cors import CORS
 import json
 from flask import request
 from github import Github
@@ -24,6 +25,9 @@ def syncGithubToDatabse():
     comments = requests.get(
         "https://raw.githubusercontent.com/BoomBoomMushroom/Spotify-Comments-API/main/comments.json"
     ).json()
+
+    print("Synced Github to Database")
+    print(comments)
 
 
 def syncDatabaseToGithub():
@@ -55,6 +59,10 @@ def syncToGithub(firstPass=False):
 syncToGithub(True)
 
 app = flask.Flask(__name__)
+CORS(app,
+     origins='*',
+     headers=['Content-Type', 'Authorization'],
+     expose_headers='Authorization')
 
 
 def responseMake(r):
@@ -63,8 +71,13 @@ def responseMake(r):
     except:
         pass
     resp = flask.Response(json.dumps(r))
-    resp.headers['Access-Control-Allow-Origin'] = "*"
+    resp.headers.add('Access-Control-Allow-Origin', "*")
     return resp
+
+
+def afterDatabaseChange():
+    # do this rn so I can get it to persist
+    syncDatabaseToGithub()
 
 
 @app.route("/")
@@ -74,8 +87,7 @@ def home():
 
 def tokenToUserData(token):
     apiUrl = "https://api.spotify.com/v1/me"
-    response = requests.get(apiUrl,
-                            headers={"Authorization": "Bearer " + token})
+    response = requests.get(apiUrl, headers={"Authorization": token})
     json = response.json()
     return json
 
@@ -123,30 +135,50 @@ def getComments():
 
 @app.route("/postcomment")
 def postComment():
+    if request.method == "OPTIONS":
+        return responseMake(""), 200
+
     try:
         message = str(request.args.get('message'))
-        token = str(request.args.get('token'))
         songId = str(request.args.get('song_id'))
-
-        #userId = str(request.args.get('user_id'))
-        #username = str(request.args.get('username'))
-        #pfpUrl = str(request.args.get('pfp_url'))
     except:
         flask.abort(400)
         #return 400
 
-    userData = tokenToUserData(token)
-    print(userData)
+    msgLen = len(message)
+    if msgLen > 1000 or msgLen <= 0:
+        return responseMake("Message is too long"), 400
 
-    return responseMake("out"), 200
+    auth = request.headers.get("Authorization")
+    userData = tokenToUserData(auth)
+
+    try:
+        username = userData["display_name"]
+        userId = userData["id"]
+
+        validPfps = [x for x in userData["images"] if x['width'] == 300]
+        pfp = validPfps[0]
+        pfpUrl = pfp["url"]
+    except:
+        flask.abort(500)
+
+    newUUID = str(uuid.uuid4())
+    sameUUID = [x for x in comments if x['UUID'] == newUUID]
+    failsafeTriesLeft = 100_000
+
+    while len([x for x in comments if x['UUID'] == newUUID]) > 0:
+        if failsafeTriesLeft <= 0:
+            flask.abort(508)
+
+        newUUID = str(uuid.uuid4())
+        failsafeTriesLeft -= 1
 
     newComment = {
-        "UUID": str(uuid.uuid4()),
+        "UUID": newUUID,
         "SongTrackId": songId,
         "user": {
             "username": username,
             "id": userId,
-            "profileURL": "https://open.spotify.com/user/" + userId,
             "pfpURL": pfpUrl
         },
         "commentMeta": {
@@ -164,10 +196,56 @@ def postComment():
         comments[songId] = []
 
     comments[songId].append(newComment)
-    # do this rn so I can get it to persist
-    syncDatabaseToGithub()
+    afterDatabaseChange()
 
-    return responseMake(""), 200
+    return responseMake("Success!"), 200
+
+
+@app.route("/react")
+def reactToComment():
+    if request.method == "OPTIONS":
+        return responseMake(""), 200
+
+    try:
+        # "likes" or "dislikes"
+        reactType = str(request.args.get('react_type'))
+        commentId = str(request.args.get('comment_id'))
+        songId = str(request.args.get('song_id'))
+    except:
+        flask.abort(400)
+        #return 400
+
+    auth = request.headers.get("Authorization")
+    userData = tokenToUserData(auth)
+
+    try:
+        userId = userData["id"]
+    except:
+        flask.abort(500)
+
+    def removeFromList(list, item):
+        if item in list:
+            list.remove(item)
+
+    songComments = comments[songId]
+    commentData = [x for x in songComments if x['UUID'] == commentId][0]
+
+    if reactType == "like": reactType == "likes"
+    elif reactType == "dislike": reactType == "dislikes"
+
+    antiReact = "likes" if reactType == "dislikes" else "dislikes"
+    if antiReact == "":
+        removeFromList(commentData["likes"], userId)
+        removeFromList(commentData["dislikes"], userId)
+    else:
+        if userId in commentData[reactType]:
+            flask.abort(304)
+        commentData[reactType].append(userId)
+        removeFromList(commentData[antiReact], userId)
+
+    afterDatabaseChange()
+
+    return responseMake("Success!"), 200
 
 
 app.run(host="0.0.0.0", port=7777)
