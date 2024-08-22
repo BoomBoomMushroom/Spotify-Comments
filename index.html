@@ -28,7 +28,7 @@
         <div id="writeMyComment">
             <img src="https://dummyimage.com/300x300" class="pfpImage" id="myProfilePicture">
             <input type="text" id="commentInput" placeholder="Add a comment..." maxlength="1000">
-            <button onclick="postComment()" class="button-3">Comment</button>
+            <button onclick="postCommentThrough()" class="button-3">Comment</button>
         </div>
         <br>
         <div id="comments">
@@ -45,12 +45,12 @@
                     <span class="commentData">COMMENT DATA</span>
                     <br>
 
-                    <button class="reactButton clickableMouse">
-                        <img src="assets/thumbs_up.png" class="reactCount reactButton">
+                    <button class="reactButton clickableMouse" onclick="postReactionThrough('like', '')">
+                        <img src="assets/thumbs_up.svg" class="reactCount reactButton">
                         <span class="reactCount">0</span>
                     </button>
-                    <button class="reactButton clickableMouse">
-                        <img src="assets/thumbs_up.png" class="reactCount reactButton flipVertical">
+                    <button class="reactButton clickableMouse" onclick="postReactionThrough('dislike', '')">
+                        <img src="assets/thumbs_down.svg" class="reactCount reactButton">
                         <span class="reactCount">0</span>
                     </button>
                     <button class="reactButton clickableMouse">
@@ -157,8 +157,14 @@
                 reportShow = deleteShow=="" ? "hidden" : ""
             }
 
-            let replySpan = `<span class="replyCount">`+ replyCount + (replyCount == 1 ? " Reply" : " Replies") +`</span>`
+            let replySpan = `<button class="replySection reactButton clickableMouse">
+                       <img src="assets/dropdown.svg" class="reactButton svg">
+                       <span class="replyCount">`+ replyCount + (replyCount == 1 ? " Reply" : " Replies") +`</span>
+                    </button>`
             if(replyCount == 0){ replySpan = "" }
+
+            let likeAppendee = commentMeta["likes"].includes(myUserData["id"]) ? "_selected" : ""
+            let dislikeAppendee = commentMeta["dislikes"].includes(myUserData["id"]) ? "_selected" : ""
 
             commentsDivElement.innerHTML += `
             <div class="comment" id="`+ data["UUID"] +`">
@@ -172,13 +178,13 @@
                     <div class="tableSpace"></div>
                     <span class="commentData">`+ commentMeta["message"] +`</span>
                     <br>
-
-                    <button class="reactButton clickableMouse">
-                        <img src="assets/thumbs_up.png" class="reactCount reactButton">
+                    
+                    <button class="reactButton clickableMouse" onclick="postReactionThrough('like', '`+ data["UUID"] +`')">
+                        <img src="assets/thumbs_up`+likeAppendee+`.svg" class="reactCount reactButton">
                         <span class="reactCount">`+ commentMeta["likes"].length +`</span>
                     </button>
-                    <button class="reactButton clickableMouse">
-                        <img src="assets/thumbs_up.png" class="reactCount reactButton flipVertical">
+                    <button class="reactButton clickableMouse" onclick="postReactionThrough('dislike', '`+ data["UUID"] +`')">
+                        <img src="assets/thumbs_down`+dislikeAppendee+`.svg" class="reactCount reactButton">
                         <span class="reactCount">`+ commentMeta["dislikes"].length +`</span>
                     </button>
                     <button class="reactButton clickableMouse">
@@ -186,10 +192,7 @@
                     </button>
 
                     <br>
-                    <button class="replySection reactButton clickableMouse">
-                       <img src="assets/dropdown.svg" class="reactButton svg">
-                       ` + replySpan + `
-                    </button>
+                    `+ replySpan +`
                 </div>
             </div>
             <br>
@@ -395,6 +398,33 @@
             return json
         }
 
+        async function postReaction(reactionType=" ", commentId=""){
+            let tokens = getTokens()
+
+            let queryString = "?react_type="+reactionType + "&comment_id=" + commentId + "&song_id=" + previousPlayingID
+            
+            let apiUrl = backendApiUrl + "/react" + queryString
+            let response = await fetch(apiUrl, {
+                headers: {
+                    "Authorization": tokens["token_type"] + " " + tokens["access_token"],
+                    'Access-Control-Allow-Origin': '*',
+                }
+            })
+            let json = await response.json()
+            return json
+        }
+
+
+        async function postCommentThrough(){
+            await postComment()
+            getAndLoadComments(previousPlayingID)   
+        }
+
+        async function postReactionThrough(reactionType, commentId){
+            await postReaction(reactionType, commentId)
+            getAndLoadComments(previousPlayingID)
+        }
+
 
         // my user data
         let myUserData = null
@@ -495,7 +525,6 @@
 
             let songId = song["id"]
             if(previousPlayingID != songId){
-                console.log("get & load")
                 getAndLoadComments(songId)
             }
             previousPlayingID = songId

@@ -162,11 +162,14 @@ def postComment():
     except:
         flask.abort(500)
 
+    if songId not in comments:
+        comments[songId] = []
+
     newUUID = str(uuid.uuid4())
-    sameUUID = [x for x in comments if x['UUID'] == newUUID]
+    sameUUID = [x for x in comments[songId] if x['UUID'] == newUUID]
     failsafeTriesLeft = 100_000
 
-    while len([x for x in comments if x['UUID'] == newUUID]) > 0:
+    while len([x for x in comments[songId] if x['UUID'] == newUUID]) > 0:
         if failsafeTriesLeft <= 0:
             flask.abort(508)
 
@@ -191,9 +194,6 @@ def postComment():
             "postTime": time.time(),
         }
     }
-
-    if songId not in comments:
-        comments[songId] = []
 
     comments[songId].append(newComment)
     afterDatabaseChange()
@@ -227,21 +227,27 @@ def reactToComment():
         if item in list:
             list.remove(item)
 
-    songComments = comments[songId]
-    commentData = [x for x in songComments if x['UUID'] == commentId][0]
+    try:
+        songComments = comments[songId]
+        commentData = [x for x in songComments if x['UUID'] == commentId][0]
+    except:
+        flask.abort(500)
 
-    if reactType == "like": reactType == "likes"
-    elif reactType == "dislike": reactType == "dislikes"
+    if reactType == "like": reactType = "likes"
+    elif reactType == "dislike": reactType = "dislikes"
 
     antiReact = "likes" if reactType == "dislikes" else "dislikes"
-    if antiReact == "":
-        removeFromList(commentData["likes"], userId)
-        removeFromList(commentData["dislikes"], userId)
+    commentMeta = commentData["commentMeta"]
+
+    if reactType == " ":
+        removeFromList(commentMeta["likes"], userId)
+        removeFromList(commentMeta["dislikes"], userId)
     else:
-        if userId in commentData[reactType]:
-            flask.abort(304)
-        commentData[reactType].append(userId)
-        removeFromList(commentData[antiReact], userId)
+        if userId in commentMeta[reactType]:
+            removeFromList(commentMeta[reactType], userId)
+        else:
+            commentMeta[reactType].append(userId)
+            removeFromList(commentMeta[antiReact], userId)
 
     afterDatabaseChange()
 
